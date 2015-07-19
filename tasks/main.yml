@@ -1,0 +1,23 @@
+---
+- name: put carbon-relay-ng.ini
+  template: src=carbon-relay-ng.ini dest={{ ext_carbon_relay_ng_conf_volume }}/carbon-relay-ng.ini
+
+- name: check if a carbon-relay-ng container is started
+  command: bash -c "docker ps | grep carbon-relay-ng"
+  ignore_errors: True
+  register: result
+
+- name: start a carbon-relay-ng container
+  command: docker run -d
+              -h {{ ansible_hostname }}-carbon-relay-ng
+              --dns {{ ansible_docker0.ipv4.address }}
+              --dns 8.8.8.8
+              -v {{ ext_carbon_relay_ng_conf_volume }}:/config
+              -p {{ carbon_relay_carbon_port }}:2003
+              -p {{ carbon_relay_admin_tcp_port }}:2004
+              -p {{ carbon_relay_admin_http_port }}:8081
+              --read-only=true
+              --restart=always
+              --name=carbon-relay-ng gitinsky/carbon-relay-ng:0.1.0
+  register: docker_id
+  when: result|failed
